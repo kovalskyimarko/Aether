@@ -74,6 +74,8 @@ bool Window::Init(int w, int h, const std::string& t)
 
     int fbWidth, fbHeight;
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    width = fbWidth;
+    height = fbHeight;
     glViewport(0, 0, fbWidth, fbHeight);
 
     SetVSync(true);

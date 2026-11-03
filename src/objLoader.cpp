@@ -40,6 +40,7 @@ namespace Aether
         std::string line;
         while (std::getline(file, line))
         {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
             if (line.empty() || line[0] == '#') continue;
 
             std::stringstream ss(line);
@@ -80,38 +81,45 @@ namespace Aether
                 {
                     FaceVertex fv;
 
-                    size_t firstSlash = vertexData.find('/');
-                    if (firstSlash == std::string::npos)
+                    try
                     {
-                        // Format: "v"
-                        fv.vIdx = std::stoi(vertexData);
-                    }
-                    else
-                    {
-                        // Format: "v/..."
-                        fv.vIdx = std::stoi(vertexData.substr(0, firstSlash));
-                        size_t secondSlash = vertexData.find('/', firstSlash + 1);
-
-                        if (secondSlash == std::string::npos)
+                        size_t firstSlash = vertexData.find('/');
+                        if (firstSlash == std::string::npos)
                         {
-                            // Format: "v/t"
-                            if (firstSlash + 1 < vertexData.size())
-                            {
-                                fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1));
-                            }
+                            // Format: "v"
+                            fv.vIdx = std::stoi(vertexData);
                         }
                         else
                         {
-                            // Format: "v/t/n" or "v//n"
-                            if (secondSlash > firstSlash + 1)
+                            // Format: "v/..."
+                            fv.vIdx = std::stoi(vertexData.substr(0, firstSlash));
+                            size_t secondSlash = vertexData.find('/', firstSlash + 1);
+
+                            if (secondSlash == std::string::npos)
                             {
-                                fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1, secondSlash - firstSlash - 1));
+                                // Format: "v/t"
+                                if (firstSlash + 1 < vertexData.size())
+                                {
+                                    fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1));
+                                }
                             }
-                            if (secondSlash + 1 < vertexData.size())
+                            else
                             {
-                                fv.nIdx = std::stoi(vertexData.substr(secondSlash + 1));
+                                // Format: "v/t/n" or "v//n"
+                                if (secondSlash > firstSlash + 1)
+                                {
+                                    fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1, secondSlash - firstSlash - 1));
+                                }
+                                if (secondSlash + 1 < vertexData.size())
+                                {
+                                    fv.nIdx = std::stoi(vertexData.substr(secondSlash + 1));
+                                }
                             }
                         }
+                    }
+                    catch (const std::exception&)
+                    {
+                        continue;
                     }
 
                     fv.vIdx = ResolveObjIndex(fv.vIdx, temp_positions.size());

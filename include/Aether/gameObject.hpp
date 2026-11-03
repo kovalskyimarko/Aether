@@ -18,7 +18,7 @@ namespace Aether
 struct Transform
 {
     Vec3 position{0.0f, 0.0f, 0.0f};
-    Vec3 rotation{0.0f, 0.0f, 0.0f}; // Pitch, Yaw, Roll in degrees or radians
+    Vec3 rotation{0.0f, 0.0f, 0.0f}; // Pitch (X), Yaw (Y), Roll (Z) in degrees
     Vec3 scale{1.0f, 1.0f, 1.0f};
 
     Mat4 GetModelMatrix() const
@@ -42,8 +42,8 @@ public:
     GameObject(const GameObject&) = delete;
     GameObject& operator=(const GameObject&) = delete;
 
-    GameObject(GameObject&&) noexcept = default;
-    GameObject& operator=(GameObject&&) noexcept = default;
+    GameObject(GameObject&& other) noexcept;
+    GameObject& operator=(GameObject&& other) noexcept;
 
     void Update();
     void Render(const Mat4& view, const Mat4& projection);

@@ -101,6 +101,9 @@ bool BoxCollider::IsColliding(const BoxCollider *other) const {
 }
 
 bool BoxCollider::IsColliding(const BoxCollider &other) const {
+  if (!gameObject || !other.gameObject)
+    return false;
+
   Vec3 aMin = GetMin();
   Vec3 aMax = GetMax();
 
