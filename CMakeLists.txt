@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 project(Aether CXX C)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose build type" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp" "src/*.c")
 add_executable(${PROJECT_NAME}
+    preview/main.cpp
     ${SOURCES}
     libs/glad/src/glad.c
 )
@@ -35,3 +40,10 @@ else()
         OpenGL::GL
     )
 endif()
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/preview"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/preview"
+    COMMENT "Copying preview assets to build directory..."
+)

@@ -86,7 +86,59 @@ bool Window::Init(int w, int h, const std::string& t)
 
 void Window::SetVSync(bool enabled)
 {
+    vsync = enabled;
     glfwSwapInterval(enabled ? 1 : 0);
+}
+
+void Window::SetFullscreen(bool enabled)
+{
+    if (!window || enabled == fullscreen)
+    {
+        return;
+    }
+
+    if (enabled)
+    {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        if (!monitor)
+        {
+            std::cerr << "WARNING::WINDOW: No monitor available for fullscreen\n";
+            return;
+        }
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if (!mode)
+        {
+            std::cerr << "WARNING::WINDOW: Could not query monitor video mode\n";
+            return;
+        }
+
+        // Remember windowed geometry so it can be restored later
+        glfwGetWindowPos(window, &windowedX, &windowedY);
+        glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
+
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    }
+    else
+    {
+        glfwSetWindowMonitor(window, nullptr, windowedX, windowedY,
+                             windowedWidth, windowedHeight, GLFW_DONT_CARE);
+    }
+
+    fullscreen = enabled;
+
+    // Some platforms reset the swap interval when the window changes monitor
+    glfwSwapInterval(vsync ? 1 : 0);
+
+    // Make sure the viewport matches the new framebuffer immediately,
+    // even if the resize callback is delivered later
+    int fbWidth = 0, fbHeight = 0;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    if (fbWidth > 0 && fbHeight > 0)
+    {
+        width = fbWidth;
+        height = fbHeight;
+        glViewport(0, 0, fbWidth, fbHeight);
+    }
 }
 
 void Window::PollEvents()

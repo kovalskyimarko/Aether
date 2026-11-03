@@ -41,32 +41,40 @@ namespace Aether
         while (std::getline(file, line))
         {
             if (!line.empty() && line.back() == '\r') line.pop_back();
-            if (line.empty() || line[0] == '#') continue;
+            if (line.size() < 2 || line[0] == '#') continue;
 
-            std::stringstream ss(line);
-            std::string prefix;
-            ss >> prefix;
+            const char* p = line.c_str();
+            while (*p == ' ' || *p == '\t') ++p;
 
-            if (prefix == "v")
+            if (p[0] == 'v' && p[1] == ' ')
             {
-                Vec3 pos;
-                ss >> pos.x >> pos.y >> pos.z;
-                temp_positions.push_back(pos);
+                p += 2;
+                char* end = nullptr;
+                float x = std::strtof(p, &end);
+                float y = std::strtof(end, &end);
+                float z = std::strtof(end, nullptr);
+                temp_positions.push_back({x, y, z});
             }
-            else if (prefix == "vt")
+            else if (p[0] == 'v' && p[1] == 't' && (p[2] == ' ' || p[2] == '\t'))
             {
-                Vec2 uv;
-                ss >> uv.x >> uv.y;
-                temp_uvs.push_back(uv);
+                p += 3;
+                char* end = nullptr;
+                float u = std::strtof(p, &end);
+                float v = std::strtof(end, nullptr);
+                temp_uvs.push_back({u, v});
             }
-            else if (prefix == "vn")
+            else if (p[0] == 'v' && p[1] == 'n' && (p[2] == ' ' || p[2] == '\t'))
             {
-                Vec3 norm;
-                ss >> norm.x >> norm.y >> norm.z;
-                temp_normals.push_back(norm);
+                p += 3;
+                char* end = nullptr;
+                float nx = std::strtof(p, &end);
+                float ny = std::strtof(end, &end);
+                float nz = std::strtof(end, nullptr);
+                temp_normals.push_back({nx, ny, nz});
             }
-            else if (prefix == "f")
+            else if (p[0] == 'f' && (p[1] == ' ' || p[1] == '\t'))
             {
+                p += 2;
                 struct FaceVertex
                 {
                     int vIdx = -1;
@@ -74,58 +82,40 @@ namespace Aether
                     int nIdx = -1;
                 };
 
-                std::vector<FaceVertex> faceVertices;
-                std::string vertexData;
+                static thread_local std::vector<FaceVertex> faceVertices;
+                faceVertices.clear();
 
-                while (ss >> vertexData)
+                while (*p)
                 {
+                    while (*p == ' ' || *p == '\t') ++p;
+                    if (!*p) break;
+
+                    char* end = nullptr;
+                    long v = std::strtol(p, &end, 10);
+                    if (end == p) break;
+                    p = end;
+
+                    long t = -1, n = -1;
+                    if (*p == '/')
+                    {
+                        ++p;
+                        if (*p != '/')
+                        {
+                            t = std::strtol(p, &end, 10);
+                            p = end;
+                        }
+                        if (*p == '/')
+                        {
+                            ++p;
+                            n = std::strtol(p, &end, 10);
+                            p = end;
+                        }
+                    }
+
                     FaceVertex fv;
-
-                    try
-                    {
-                        size_t firstSlash = vertexData.find('/');
-                        if (firstSlash == std::string::npos)
-                        {
-                            // Format: "v"
-                            fv.vIdx = std::stoi(vertexData);
-                        }
-                        else
-                        {
-                            // Format: "v/..."
-                            fv.vIdx = std::stoi(vertexData.substr(0, firstSlash));
-                            size_t secondSlash = vertexData.find('/', firstSlash + 1);
-
-                            if (secondSlash == std::string::npos)
-                            {
-                                // Format: "v/t"
-                                if (firstSlash + 1 < vertexData.size())
-                                {
-                                    fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1));
-                                }
-                            }
-                            else
-                            {
-                                // Format: "v/t/n" or "v//n"
-                                if (secondSlash > firstSlash + 1)
-                                {
-                                    fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1, secondSlash - firstSlash - 1));
-                                }
-                                if (secondSlash + 1 < vertexData.size())
-                                {
-                                    fv.nIdx = std::stoi(vertexData.substr(secondSlash + 1));
-                                }
-                            }
-                        }
-                    }
-                    catch (const std::exception&)
-                    {
-                        continue;
-                    }
-
-                    fv.vIdx = ResolveObjIndex(fv.vIdx, temp_positions.size());
-                    fv.tIdx = (fv.tIdx != -1) ? ResolveObjIndex(fv.tIdx, temp_uvs.size()) : -1;
-                    fv.nIdx = (fv.nIdx != -1) ? ResolveObjIndex(fv.nIdx, temp_normals.size()) : -1;
-
+                    fv.vIdx = ResolveObjIndex(static_cast<int>(v), temp_positions.size());
+                    fv.tIdx = (t != -1) ? ResolveObjIndex(static_cast<int>(t), temp_uvs.size()) : -1;
+                    fv.nIdx = (n != -1) ? ResolveObjIndex(static_cast<int>(n), temp_normals.size()) : -1;
                     faceVertices.push_back(fv);
                 }
 
