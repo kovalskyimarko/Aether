@@ -1,0 +1,6 @@
+# Exclude third-party code from GitHub's language statistics
+libs/** linguist-vendored
+
+# Treat preview assets as binary/data (no diffs, not counted as code)
+*.obj binary
+*.png binary
