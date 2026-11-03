@@ -1,5 +1,6 @@
 #include "Aether/shader.hpp"
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -88,7 +89,10 @@ namespace Aether
     {
         if (ID != 0)
         {
-            glDeleteProgram(ID);
+            if (glfwGetCurrentContext() != nullptr)
+            {
+                glDeleteProgram(ID);
+            }
             ID = 0;
         }
     }
@@ -103,7 +107,7 @@ namespace Aether
     {
         if (this != &other)
         {
-            if (ID != 0)
+            if (ID != 0 && glfwGetCurrentContext() != nullptr)
             {
                 glDeleteProgram(ID);
             }

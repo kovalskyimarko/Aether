@@ -66,49 +66,84 @@ namespace Aether
             }
             else if (prefix == "f")
             {
-                std::string vertexData;
-                for (int i = 0; i < 3; ++i)
+                struct FaceVertex
                 {
-                    if (!(ss >> vertexData)) break;
-
                     int vIdx = -1;
                     int tIdx = -1;
                     int nIdx = -1;
+                };
+
+                std::vector<FaceVertex> faceVertices;
+                std::string vertexData;
+
+                while (ss >> vertexData)
+                {
+                    FaceVertex fv;
 
                     size_t firstSlash = vertexData.find('/');
                     if (firstSlash == std::string::npos)
                     {
                         // Format: "v"
-                        vIdx = std::stoi(vertexData);
+                        fv.vIdx = std::stoi(vertexData);
                     }
                     else
                     {
                         // Format: "v/..."
-                        vIdx = std::stoi(vertexData.substr(0, firstSlash));
+                        fv.vIdx = std::stoi(vertexData.substr(0, firstSlash));
                         size_t secondSlash = vertexData.find('/', firstSlash + 1);
 
                         if (secondSlash == std::string::npos)
                         {
                             // Format: "v/t"
-                            tIdx = std::stoi(vertexData.substr(firstSlash + 1));
+                            if (firstSlash + 1 < vertexData.size())
+                            {
+                                fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1));
+                            }
                         }
                         else
                         {
                             // Format: "v/t/n" or "v//n"
                             if (secondSlash > firstSlash + 1)
                             {
-                                tIdx = std::stoi(vertexData.substr(firstSlash + 1, secondSlash - firstSlash - 1));
+                                fv.tIdx = std::stoi(vertexData.substr(firstSlash + 1, secondSlash - firstSlash - 1));
                             }
                             if (secondSlash + 1 < vertexData.size())
                             {
-                                nIdx = std::stoi(vertexData.substr(secondSlash + 1));
+                                fv.nIdx = std::stoi(vertexData.substr(secondSlash + 1));
                             }
                         }
                     }
 
-                    vertexIndices.push_back(ResolveObjIndex(vIdx, temp_positions.size()));
-                    uvIndices.push_back(tIdx != -1 ? ResolveObjIndex(tIdx, temp_uvs.size()) : -1);
-                    normalIndices.push_back(nIdx != -1 ? ResolveObjIndex(nIdx, temp_normals.size()) : -1);
+                    fv.vIdx = ResolveObjIndex(fv.vIdx, temp_positions.size());
+                    fv.tIdx = (fv.tIdx != -1) ? ResolveObjIndex(fv.tIdx, temp_uvs.size()) : -1;
+                    fv.nIdx = (fv.nIdx != -1) ? ResolveObjIndex(fv.nIdx, temp_normals.size()) : -1;
+
+                    faceVertices.push_back(fv);
+                }
+
+                // Triangulate polygon face using fan triangulation (0, i, i+1)
+                for (size_t i = 1; i + 1 < faceVertices.size(); ++i)
+                {
+                    const FaceVertex tri[3] = { faceVertices[0], faceVertices[i], faceVertices[i + 1] };
+
+                    bool validTriangle = true;
+                    for (int k = 0; k < 3; ++k)
+                    {
+                        if (tri[k].vIdx < 0 || static_cast<size_t>(tri[k].vIdx) >= temp_positions.size())
+                        {
+                            validTriangle = false;
+                            break;
+                        }
+                    }
+
+                    if (!validTriangle) continue;
+
+                    for (int k = 0; k < 3; ++k)
+                    {
+                        vertexIndices.push_back(tri[k].vIdx);
+                        uvIndices.push_back(tri[k].tIdx);
+                        normalIndices.push_back(tri[k].nIdx);
+                    }
                 }
             }
         }
@@ -117,40 +152,50 @@ namespace Aether
         std::vector<float> outData;
         outData.reserve(vertexIndices.size() * stride);
 
-        for (size_t i = 0; i < vertexIndices.size(); ++i)
+        for (size_t i = 0; i + 2 < vertexIndices.size(); i += 3)
         {
-            int vIndex = vertexIndices[i];
-            if (vIndex < 0 || static_cast<size_t>(vIndex) >= temp_positions.size())
+            bool validTri = true;
+            for (size_t k = 0; k < 3; ++k)
             {
-                continue;
-            }
-
-            Vec3 pos = temp_positions[vIndex];
-            outData.push_back(pos.x);
-            outData.push_back(pos.y);
-            outData.push_back(pos.z);
-
-            if (includeNormals)
-            {
-                Vec3 norm = {0.0f, 1.0f, 0.0f}; // Default upward normal
-                int nIndex = normalIndices[i];
-                if (nIndex >= 0 && static_cast<size_t>(nIndex) < temp_normals.size())
+                int vIndex = vertexIndices[i + k];
+                if (vIndex < 0 || static_cast<size_t>(vIndex) >= temp_positions.size())
                 {
-                    norm = temp_normals[nIndex];
+                    validTri = false;
+                    break;
                 }
-                outData.push_back(norm.x);
-                outData.push_back(norm.y);
-                outData.push_back(norm.z);
             }
+            if (!validTri) continue;
 
-            Vec2 uv = {0.0f, 0.0f};
-            int tIndex = uvIndices[i];
-            if (tIndex >= 0 && static_cast<size_t>(tIndex) < temp_uvs.size())
+            for (size_t k = 0; k < 3; ++k)
             {
-                uv = temp_uvs[tIndex];
+                size_t idx = i + k;
+                Vec3 pos = temp_positions[vertexIndices[idx]];
+                outData.push_back(pos.x);
+                outData.push_back(pos.y);
+                outData.push_back(pos.z);
+
+                if (includeNormals)
+                {
+                    Vec3 norm = {0.0f, 1.0f, 0.0f}; // Default upward normal
+                    int nIndex = normalIndices[idx];
+                    if (nIndex >= 0 && static_cast<size_t>(nIndex) < temp_normals.size())
+                    {
+                        norm = temp_normals[nIndex];
+                    }
+                    outData.push_back(norm.x);
+                    outData.push_back(norm.y);
+                    outData.push_back(norm.z);
+                }
+
+                Vec2 uv = {0.0f, 0.0f};
+                int tIndex = uvIndices[idx];
+                if (tIndex >= 0 && static_cast<size_t>(tIndex) < temp_uvs.size())
+                {
+                    uv = temp_uvs[tIndex];
+                }
+                outData.push_back(uv.x);
+                outData.push_back(uv.y);
             }
-            outData.push_back(uv.x);
-            outData.push_back(uv.y);
         }
 
         return outData;

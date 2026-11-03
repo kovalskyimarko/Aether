@@ -1,5 +1,6 @@
 #include "Aether/texture.hpp"
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <utility>
 #include "stb_image.h"
@@ -71,7 +72,10 @@ namespace Aether
     {
         if (ID != 0)
         {
-            glDeleteTextures(1, &ID);
+            if (glfwGetCurrentContext() != nullptr)
+            {
+                glDeleteTextures(1, &ID);
+            }
             ID = 0;
         }
     }
@@ -89,7 +93,7 @@ namespace Aether
     {
         if (this != &other)
         {
-            if (ID != 0)
+            if (ID != 0 && glfwGetCurrentContext() != nullptr)
             {
                 glDeleteTextures(1, &ID);
             }

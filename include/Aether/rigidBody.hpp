@@ -11,7 +11,6 @@ namespace Aether
         Vec3 velocity = {0.0f, 0.0f, 0.0f};
         Vec3 forces = {0.0f, 0.0f, 0.0f};
 
-        float mass = 1.0f;
         float linearDamping = 0.05f; // Air resistance [0 = frictionless, 1 = heavy drag]
         bool useGravity = true;
         float gravityScale = 1.0f;
@@ -29,9 +28,11 @@ namespace Aether
         void ClearForces();
 
         void SetMass(float newMass);
+        float GetMass() const { return mass; }
         float GetInverseMass() const { return invMass; }
 
     private:
+        float mass = 1.0f;
         float invMass = 1.0f;
         void StepSimulation(float dt);
     };

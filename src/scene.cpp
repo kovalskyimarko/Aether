@@ -10,6 +10,12 @@ Scene::Scene(const std::string& name)
 
 void Scene::ProcessPendingModifications()
 {
+    if (!pendingAdditions.empty())
+    {
+        objects.insert(objects.end(), pendingAdditions.begin(), pendingAdditions.end());
+        pendingAdditions.clear();
+    }
+
     if (!pendingRemovals.empty())
     {
         for (const auto& toRemove : pendingRemovals)
@@ -20,12 +26,6 @@ void Scene::ProcessPendingModifications()
             );
         }
         pendingRemovals.clear();
-    }
-
-    if (!pendingAdditions.empty())
-    {
-        objects.insert(objects.end(), pendingAdditions.begin(), pendingAdditions.end());
-        pendingAdditions.clear();
     }
 }
 
@@ -67,6 +67,10 @@ void Scene::RemoveObject(const std::shared_ptr<GameObject>& obj)
 {
     if (obj)
     {
+        pendingAdditions.erase(
+            std::remove(pendingAdditions.begin(), pendingAdditions.end(), obj),
+            pendingAdditions.end()
+        );
         pendingRemovals.push_back(obj);
     }
 }

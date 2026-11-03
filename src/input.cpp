@@ -25,10 +25,8 @@ void Input::Update()
     keysJustPressed.fill(false);
     buttonsJustPressed.fill(false);
 
-    deltaMouseX = mouseX - lastMouseX;
-    deltaMouseY = mouseY - lastMouseY;
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
+    deltaMouseX = 0.0;
+    deltaMouseY = 0.0;
 
     scrollX = 0.0;
     scrollY = 0.0;
@@ -138,6 +136,11 @@ void Input::CursorPositionCallback(GLFWwindow* /*window*/, double xpos, double y
         input.lastMouseY = ypos;
         input.firstMouseMove = false;
     }
+
+    input.deltaMouseX += xpos - input.lastMouseX;
+    input.deltaMouseY += ypos - input.lastMouseY;
+    input.lastMouseX = xpos;
+    input.lastMouseY = ypos;
 
     input.mouseX = xpos;
     input.mouseY = ypos;

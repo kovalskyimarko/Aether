@@ -1,4 +1,5 @@
 #include "Aether/mesh.hpp"
+#include <GLFW/glfw3.h>
 #include <iostream>
 
 namespace Aether
@@ -51,12 +52,12 @@ namespace Aether
 
         if (hasNormals)
         {
-            // Layout 1: Normal (3 floats)
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(strideBytes), (void*)(3 * sizeof(float)));
+            // Layout 1: Texture Coords (2 floats)
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(strideBytes), (void*)(6 * sizeof(float)));
             glEnableVertexAttribArray(1);
 
-            // Layout 2: Texture Coords (2 floats)
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(strideBytes), (void*)(6 * sizeof(float)));
+            // Layout 2: Normal (3 floats)
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(strideBytes), (void*)(3 * sizeof(float)));
             glEnableVertexAttribArray(2);
         }
         else
@@ -72,21 +73,15 @@ namespace Aether
 
     Mesh::~Mesh()
     {
-        if (VAO != 0)
+        if (glfwGetCurrentContext() != nullptr)
         {
-            glDeleteVertexArrays(1, &VAO);
-            VAO = 0;
+            if (VAO != 0) glDeleteVertexArrays(1, &VAO);
+            if (VBO != 0) glDeleteBuffers(1, &VBO);
+            if (EBO != 0) glDeleteBuffers(1, &EBO);
         }
-        if (VBO != 0)
-        {
-            glDeleteBuffers(1, &VBO);
-            VBO = 0;
-        }
-        if (EBO != 0)
-        {
-            glDeleteBuffers(1, &EBO);
-            EBO = 0;
-        }
+        VAO = 0;
+        VBO = 0;
+        EBO = 0;
     }
 
     Mesh::Mesh(Mesh&& other) noexcept
@@ -102,9 +97,12 @@ namespace Aether
     {
         if (this != &other)
         {
-            if (VAO != 0) glDeleteVertexArrays(1, &VAO);
-            if (VBO != 0) glDeleteBuffers(1, &VBO);
-            if (EBO != 0) glDeleteBuffers(1, &EBO);
+            if (glfwGetCurrentContext() != nullptr)
+            {
+                if (VAO != 0) glDeleteVertexArrays(1, &VAO);
+                if (VBO != 0) glDeleteBuffers(1, &VBO);
+                if (EBO != 0) glDeleteBuffers(1, &EBO);
+            }
 
             VAO = other.VAO;
             VBO = other.VBO;

@@ -26,22 +26,19 @@ namespace Aether
             shader->SetInt("texture1", 0);
             shader->SetBool("useTexture", true);
         }
-        else if (useTexture)
+        else
         {
-            // Fallback 1x1 white texture so vertex color / tint still modulates correctly
+            // Keep the 1x1 white fallback texture bound on unit 0 so the driver
+            // never sees an unloadable/unbound texture on active sampler uniforms
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, Aether::fallbackTextureID);
             shader->SetInt("texture1", 0);
-            shader->SetBool("useTexture", true);
-        }
-        else
-        {
-            shader->SetBool("useTexture", false);
+            shader->SetBool("useTexture", useTexture);
         }
 
         mesh->Draw();
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, Aether::fallbackTextureID);
     }
 }
